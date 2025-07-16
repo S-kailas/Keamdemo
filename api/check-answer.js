@@ -13,10 +13,10 @@ module.exports = async (req, res) => {
   const { questionId, userAnswer } = JSON.parse(body);
 
   const answers = {
-    1: "4",
-    2: "Delhi",
-    3: "Dev",
-    4: "Japan",
+    1: "b",
+    2: "b",
+    3: "a",
+    4: "a",
   };
 
   const correct =
