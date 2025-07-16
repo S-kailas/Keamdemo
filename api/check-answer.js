@@ -3,11 +3,11 @@ module.exports = async (req, res) => {
     return res.status(405).end("Method Not Allowed");
   }
 
-  // Parse the body manually
-  let body = "";
-  await new Promise((resolve) => {
-    req.on("data", chunk => body += chunk);
-    req.on("end", resolve);
+  // Manual body parsing (Vercel doesn't auto-parse JSON)
+  let body = '';
+  await new Promise(resolve => {
+    req.on('data', chunk => body += chunk);
+    req.on('end', resolve);
   });
 
   const { questionId, userAnswer } = JSON.parse(body);
