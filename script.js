@@ -2,21 +2,38 @@ const questions = [
   {
     id: 1,
     text: "What is 2 + 2?",
-    options: ["3", "4", "5"]
+    options: {
+      a: "3",
+      b: "4",
+      c: "5"
+    }
   },
   {
     id: 2,
     text: "What is the capital of India?",
-    options: ["Mumbai", "Delhi", "Kolkata"]
+    options: {
+      a: "Mumbai",
+      b: "Delhi",
+      c: "Kolkata"
+    }
   },
   {
     id: 3,
     text: "Who is kailas?",
-    options: ["Dev", "hacker", "Pro"]
-  },{
+    options: {
+      a: "Dev",
+      b: "hacker",
+      c: "Pro"
+    }
+  },
+  {
     id: 4,
     text: "Quad includes?",
-    options: ["Japan", "china", "Kollam"]
+    options: {
+      a: "Japan",
+      b: "china",
+      c: "Kollam"
+    }
   }
 ];
 
@@ -33,15 +50,15 @@ function loadQuestion() {
   questionEl.textContent = q.text;
   optionsEl.innerHTML = "";
 
-  q.options.forEach(opt => {
+  for (let key in q.options) {
     const label = document.createElement("label");
     label.innerHTML = `
-      <input type="radio" name="option" value="${opt}" required>
-      ${opt}
+      <input type="radio" name="option" value="${key}" required>
+      (${key.toUpperCase()}) ${q.options[key]}
     `;
     optionsEl.appendChild(label);
     optionsEl.appendChild(document.createElement("br"));
-  });
+  }
 }
 
 formEl.addEventListener("submit", async (e) => {
