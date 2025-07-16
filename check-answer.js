@@ -10,7 +10,7 @@ export default function handler(req, res) {
 
   const { questionId, userAnswer } = req.body;
 
-  // ✅ Fix: make sure questionId is a number
+  // ✅ Fix: force questionId to be a number
   const correct =
     answers[parseInt(questionId)].trim().toLowerCase() === userAnswer.trim().toLowerCase();
 
