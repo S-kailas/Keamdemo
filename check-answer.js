@@ -9,6 +9,10 @@ export default function handler(req, res) {
   };
 
   const { questionId, userAnswer } = req.body;
-  const correct = answers[questionId] === userAnswer;
+
+  // ✅ Fix: make sure questionId is a number
+  const correct =
+    answers[parseInt(questionId)].trim().toLowerCase() === userAnswer.trim().toLowerCase();
+
   res.json({ correct });
 }
