@@ -44,7 +44,7 @@ formEl.addEventListener("submit", async (e) => {
   const questionId = questions[current].id;
 
   try {
-    const res = await fetch('/api/check-answer', {
+    const res = await fetch('check-answer', {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ questionId, userAnswer })
