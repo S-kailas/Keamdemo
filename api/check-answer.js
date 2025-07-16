@@ -15,6 +15,8 @@ module.exports = async (req, res) => {
   const answers = {
     1: "4",
     2: "Delhi"
+    3: "Dev"
+    4: "Japan"
   };
 
   const correct =
