@@ -44,7 +44,7 @@ formEl.addEventListener("submit", async (e) => {
   const questionId = questions[current].id;
 
   try {
-    const res = await fetch('check-answer', {
+    const res = await fetch('/api/check-answer', {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ questionId, userAnswer })
@@ -53,7 +53,7 @@ formEl.addEventListener("submit", async (e) => {
     const data = await res.json();
     if (data.correct) correctCount++;
   } catch (err) {
-    console.error("Error checking answer:", err);
+    console.error("API error:", err);
   }
 
   current++;
@@ -61,11 +61,9 @@ formEl.addEventListener("submit", async (e) => {
   if (current < questions.length) {
     loadQuestion();
   } else {
-    // Hide quiz elements, show only score
     formEl.style.display = "none";
     questionEl.style.display = "none";
     optionsEl.style.display = "none";
-
     resultEl.style.display = "block";
     resultEl.textContent = `You got ${correctCount} out of ${questions.length} correct.`;
   }
