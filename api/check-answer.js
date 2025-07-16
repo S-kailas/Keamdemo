@@ -1,4 +1,4 @@
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).end("Method Not Allowed");
   }
@@ -8,7 +8,11 @@ export default function handler(req, res) {
     2: "Delhi"
   };
 
-  const { questionId, userAnswer } = req.body;
-  const correct = answers[questionId] === userAnswer;
-  res.json({ correct });
+  const body = await req.json();
+  const { questionId, userAnswer } = body;
+
+  const correct =
+    answers[parseInt(questionId)].trim().toLowerCase() === userAnswer.trim().toLowerCase();
+
+  res.status(200).json({ correct });
 }
