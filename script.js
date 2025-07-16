@@ -8,6 +8,15 @@ const questions = [
     id: 2,
     text: "What is the capital of India?",
     options: ["Mumbai", "Delhi", "Kolkata"]
+  },
+  {
+    id: 3,
+    text: "Who is kailas?",
+    options: ["Dev", "hacker", "Pro"]
+  },{
+    id: 4,
+    text: "Quad includes?",
+    options: ["Japan", "china", "Kollam"]
   }
 ];
 
