@@ -132,7 +132,6 @@
   let currentIndex = 0;
   let answers = Array(questions.length).fill(null);
   let marked = Array(questions.length).fill(false);
-  // paletteStatus now only tracks if Save&Next/Previous applied (green/red). Mark colors handled separately with priority.
   let paletteStatus = Array(questions.length).fill("default"); // "default", "answered", "unanswered"
   let timer = 60 * 60;
   let submitted = false;
@@ -192,13 +191,9 @@
         } else if (paletteStatus[thisIndex] === "unanswered") {
           btn.classList.add("unanswered"); // red
         } else if (marked[thisIndex]) {
-          // Mark colors only if no saved answer (priority)
           if (answers[thisIndex] !== null) btn.classList.add("marked-answered"); // blue
           else btn.classList.add("marked-unanswered"); // yellow
-        } else {
-          // default white, no extra class
         }
-
         if (thisIndex === currentIndex) btn.classList.add("current");
         btn.textContent = i + 1;
         btn.onclick = () => {
@@ -226,7 +221,6 @@
     document.getElementById("timer").textContent = `${min}:${sec}`;
   }
 
-  // On Save & Next/Previous - save answer status palette and clear marked (because priority)
   function saveStatusAndClearMark(idx) {
     if (answers[idx] !== null) {
       paletteStatus[idx] = "answered";
@@ -238,10 +232,6 @@
   }
 
   function toggleMark(idx) {
-    // Mark/unmark does NOT change saved answer status
-    // If question is saved (answered or not), mark-for-review colors do NOT override palette colors
-    // But if no saved answer status, mark applies colors
-
     if (marked[idx]) {
       marked[idx] = false;
     } else {
@@ -255,42 +245,71 @@
     document.getElementById("result-modal").style.display = "flex";
 
     let total = questions.length;
-    let correct = 0, incorrect = 0, unanswered = 0;
+    let correct = 0, incorrect = 0, unanswered = 0, totalMarks = 0;
+    let markingDetails = [];
+
     answers.forEach((ans, i) => {
-      if (ans === null) unanswered++;
-      else if (ans === questions[i].answer) correct++;
-      else incorrect++;
+      // Only consider green or blue palette for marking
+      let isGreen = paletteStatus[i] === "answered";
+      let isBlue = (!isGreen && marked[i] && answers[i] !== null);
+      if (isGreen || isBlue) {
+        if (ans === questions[i].answer) {
+          correct++;
+          totalMarks += 4;
+          markingDetails.push(`<li>Q${i+1}: <span style="color:green;">+4</span> (Correct)</li>`);
+        } else {
+          incorrect++;
+          totalMarks -= 1;
+          markingDetails.push(`<li>Q${i+1}: <span style="color:red;">-1</span> (Wrong)</li>`);
+        }
+      } else {
+        unanswered++;
+        markingDetails.push(`<li>Q${i+1}: <span style="color:gray;">0</span> (Not Answered)</li>`);
+      }
     });
 
     let subjectStats = subjects.map(subj => {
       const start = getSubjectStartIndex(subj.name);
       const end = start + subj.count;
-      const ans = answers.slice(start, end);
-      const q = questions.slice(start, end);
-      let c = 0, ic = 0, ua = 0;
-      ans.forEach((a, i) => {
-        if (a === null) ua++;
-        else if (a === q[i].answer) c++;
-        else ic++;
-      });
+      let subjCorrect = 0, subjIncorrect = 0, subjUnanswered = 0, subjMarks = 0;
+      for (let i = start; i < end; i++) {
+        let isGreen = paletteStatus[i] === "answered";
+        let isBlue = (!isGreen && marked[i] && answers[i] !== null);
+        if (isGreen || isBlue) {
+          if (answers[i] === questions[i].answer) {
+            subjCorrect++;
+            subjMarks += 4;
+          } else {
+            subjIncorrect++;
+            subjMarks -= 1;
+          }
+        } else {
+          subjUnanswered++;
+        }
+      }
       return {
         name: subj.name,
-        correct: c,
-        incorrect: ic,
-        unanswered: ua
+        correct: subjCorrect,
+        incorrect: subjIncorrect,
+        unanswered: subjUnanswered,
+        marks: subjMarks
       };
     });
 
     document.getElementById("result-content").innerHTML = `
       <h2>Result</h2>
       <p><b>Total Questions:</b> ${total}</p>
-      <p><b>Correct:</b> ${correct}</p>
-      <p><b>Incorrect:</b> ${incorrect}</p>
-      <p><b>Unanswered:</b> ${unanswered}</p>
+      <p><b>Correct:</b> ${correct} &nbsp; <b>Incorrect:</b> ${incorrect} &nbsp; <b>Unanswered:</b> ${unanswered}</p>
+      <p style="font-size:18px;"><b>Total Marks: ${totalMarks}</b></p>
       <hr>
       <b>Per Subject:</b>
       <ul style="text-align:left;">
-        ${subjectStats.map(s => `<li>${s.name}: ${s.correct} correct, ${s.incorrect} incorrect, ${s.unanswered} unanswered</li>`).join("")}
+        ${subjectStats.map(s => `<li>${s.name}: ${s.correct} correct, ${s.incorrect} incorrect, ${s.unanswered} unanswered, <b>Marks: ${s.marks}</b></li>`).join("")}
+      </ul>
+      <hr>
+      <b>Marking Details:</b>
+      <ul style="text-align:left; max-height:150px; overflow:auto;">
+        ${markingDetails.join("")}
       </ul>
       <button class="close-btn" onclick="closeResult()">Close</button>
     `;
@@ -300,9 +319,6 @@
     document.getElementById("result-modal").style.display = "none";
   }
 
-  // --- EVENTS ---
-
-  // Save & Previous
   document.getElementById("prev-btn").onclick = () => {
     saveStatusAndClearMark(currentIndex);
     if (currentIndex > 0) currentIndex--;
@@ -311,7 +327,6 @@
     updateAnsweredCount();
   };
 
-  // Save & Next
   document.getElementById("next-btn").onclick = () => {
     saveStatusAndClearMark(currentIndex);
     updatePalette();
@@ -320,7 +335,6 @@
     updateQuestion();
   };
 
-  // Clear Response: clear answer, mark and palette status reset to default white
   document.getElementById("clear-btn").onclick = () => {
     answers[currentIndex] = null;
     marked[currentIndex] = false;
@@ -330,24 +344,16 @@
     updateAnsweredCount();
   };
 
-  // Mark/Unmark for Review + Load Next Ques
   document.getElementById("mark-btn").onclick = () => {
-    // Toggle mark
     toggleMark(currentIndex);
-
-    // Mark doesn't override saved answer palette colors; priority explained in updatePalette
-
-    // Move to next question automatically (if not last)
     if (currentIndex < questions.length - 1) {
       currentIndex++;
     }
-
     updateQuestion();
     updatePalette();
     updateAnsweredCount();
   };
 
-  // --- INIT ---
   updateQuestion();
   updatePalette();
   updateAnsweredCount();
