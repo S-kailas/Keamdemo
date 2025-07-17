@@ -133,7 +133,7 @@
   let answers = Array(questions.length).fill(null);
   let marked = Array(questions.length).fill(false);
   let paletteStatus = Array(questions.length).fill("default"); // "default", "answered", "unanswered"
-  let timer = 60 * 60;
+  let timer = 3 * 60;
   let submitted = false;
 
   function getSubjectStartIndex(subject) {
