@@ -175,22 +175,30 @@
   }
 
   function updatePalette() {
-    let idx = 0;
-    subjects.forEach(subj => {
-      const paletteDiv = document.getElementById("palette-" + subj.name.toLowerCase());
-      paletteDiv.innerHTML = `<div class="palette-title">${subj.name}</div><div class="palette" id="palette-${subj.name.toLowerCase()}-btns"></div>`;
-      const btnsDiv = document.getElementById(`palette-${subj.name.toLowerCase()}-btns`);
-      for (let i = 0; i < subj.count; i++, idx++) {
-        let btn = document.createElement("button");
-        btn.className = "palette-btn";
-        btn.classList.add(paletteStatus[idx]);
-        if (idx === currentIndex) btn.classList.add("current");
-        btn.textContent = i + 1;
-        btn.onclick = () => { currentIndex = idx; updateQuestion(); updatePalette(); };
-        btnsDiv.appendChild(btn);
-      }
-    });
-  }
+  let questionIdx = 0;
+  subjects.forEach(subj => {
+    const paletteDiv = document.getElementById("palette-" + subj.name.toLowerCase());
+    paletteDiv.innerHTML = `<div class="palette-title">${subj.name}</div><div class="palette" id="palette-${subj.name.toLowerCase()}-btns"></div>`;
+    const btnsDiv = document.getElementById(`palette-${subj.name.toLowerCase()}-btns`);
+
+    for (let i = 0; i < subj.count; i++) {
+      const thisIndex = questionIdx; // capture correct index
+      let btn = document.createElement("button");
+      btn.className = "palette-btn";
+      btn.classList.add(paletteStatus[thisIndex]);
+      if (thisIndex === currentIndex) btn.classList.add("current");
+      btn.textContent = i + 1;
+      btn.onclick = () => {
+        currentIndex = thisIndex;
+        updateQuestion();
+        updatePalette();
+      };
+      btnsDiv.appendChild(btn);
+      questionIdx++;
+    }
+  });
+}
+
 
   function updateAnsweredCount() {
     subjects.forEach(subj => {
