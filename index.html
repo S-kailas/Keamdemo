@@ -38,6 +38,7 @@
     .palette-btn {
       width: 28px; height: 28px; border-radius: 4px; border: 1px solid #ccc;
       font-size: 15px; background: #fff; cursor: pointer; transition: 0.2s;
+      color: #000;
     }
     .palette-btn.current { border: 2px solid #007bff; font-weight: bold; }
     .palette-btn.answered { background: #22c55e !important; color: #fff; } /* Green */
@@ -131,7 +132,8 @@
   let currentIndex = 0;
   let answers = Array(questions.length).fill(null);
   let marked = Array(questions.length).fill(false);
-  let paletteStatus = Array(questions.length).fill("unanswered");
+  // paletteStatus now only tracks if Save&Next/Previous applied (green/red). Mark colors handled separately with priority.
+  let paletteStatus = Array(questions.length).fill("default"); // "default", "answered", "unanswered"
   let timer = 60 * 60;
   let submitted = false;
 
@@ -158,9 +160,9 @@
       const label = document.createElement("label");
       label.className = "option-label" + (answers[currentIndex] === i ? " selected" : "");
       label.innerHTML = `<input type="radio" name="option" ${answers[currentIndex] === i ? "checked" : ""} style="margin-right:12px;"> <b>${String.fromCharCode(65 + i)}.</b> ${opt || '<span style="color:#aaa">[Option]</span>'}`;
-      label.onclick = () => { 
-        answers[currentIndex] = i; 
-        updateQuestion(); 
+      label.onclick = () => {
+        answers[currentIndex] = i;
+        updateQuestion();
       };
       optionsDiv.appendChild(label);
     });
@@ -180,7 +182,23 @@
         const thisIndex = questionIdx;
         let btn = document.createElement("button");
         btn.className = "palette-btn";
-        btn.classList.add(paletteStatus[thisIndex]);
+
+        // Logic priority:
+        // 1) If saved answer exists -> green if answered, red if unanswered
+        // 2) Else if marked -> blue if answered, yellow if unanswered
+        // 3) Else white (default)
+        if (paletteStatus[thisIndex] === "answered") {
+          btn.classList.add("answered"); // green
+        } else if (paletteStatus[thisIndex] === "unanswered") {
+          btn.classList.add("unanswered"); // red
+        } else if (marked[thisIndex]) {
+          // Mark colors only if no saved answer (priority)
+          if (answers[thisIndex] !== null) btn.classList.add("marked-answered"); // blue
+          else btn.classList.add("marked-unanswered"); // yellow
+        } else {
+          // default white, no extra class
+        }
+
         if (thisIndex === currentIndex) btn.classList.add("current");
         btn.textContent = i + 1;
         btn.onclick = () => {
@@ -197,7 +215,7 @@
   function updateAnsweredCount() {
     subjects.forEach(subj => {
       const start = getSubjectStartIndex(subj.name);
-      const count = paletteStatus.slice(start, start + subj.count).filter(s => s === "answered" || s === "marked-answered").length;
+      const count = paletteStatus.slice(start, start + subj.count).filter(s => s === "answered").length;
       document.getElementById("answered-" + subj.name.toLowerCase()).textContent = count;
     });
   }
@@ -208,13 +226,26 @@
     document.getElementById("timer").textContent = `${min}:${sec}`;
   }
 
-  function saveStatus(idx) {
-    if (marked[idx]) {
-      if (answers[idx] !== null) paletteStatus[idx] = "marked-answered";
-      else paletteStatus[idx] = "marked-unanswered";
+  // On Save & Next/Previous - save answer status palette and clear marked (because priority)
+  function saveStatusAndClearMark(idx) {
+    if (answers[idx] !== null) {
+      paletteStatus[idx] = "answered";
+      marked[idx] = false; // Save&Next overrides mark-for-review
     } else {
-      if (answers[idx] !== null) paletteStatus[idx] = "answered";
-      else paletteStatus[idx] = "unanswered";
+      paletteStatus[idx] = "unanswered";
+      marked[idx] = false;
+    }
+  }
+
+  function toggleMark(idx) {
+    // Mark/unmark does NOT change saved answer status
+    // If question is saved (answered or not), mark-for-review colors do NOT override palette colors
+    // But if no saved answer status, mark applies colors
+
+    if (marked[idx]) {
+      marked[idx] = false;
+    } else {
+      marked[idx] = true;
     }
   }
 
@@ -269,38 +300,51 @@
     document.getElementById("result-modal").style.display = "none";
   }
 
-  // --- EVENT LISTENERS ---
+  // --- EVENTS ---
+
+  // Save & Previous
   document.getElementById("prev-btn").onclick = () => {
-    saveStatus(currentIndex);
+    saveStatusAndClearMark(currentIndex);
     if (currentIndex > 0) currentIndex--;
-    updateQuestion(); updatePalette(); updateAnsweredCount();
+    updateQuestion();
+    updatePalette();
+    updateAnsweredCount();
   };
 
+  // Save & Next
   document.getElementById("next-btn").onclick = () => {
-    saveStatus(currentIndex);
+    saveStatusAndClearMark(currentIndex);
     updatePalette();
     updateAnsweredCount();
     if (currentIndex < questions.length - 1) currentIndex++;
     updateQuestion();
   };
 
+  // Clear Response: clear answer, mark and palette status reset to default white
   document.getElementById("clear-btn").onclick = () => {
     answers[currentIndex] = null;
-    saveStatus(currentIndex);
-    updateQuestion(); updatePalette(); updateAnsweredCount();
+    marked[currentIndex] = false;
+    paletteStatus[currentIndex] = "default";
+    updateQuestion();
+    updatePalette();
+    updateAnsweredCount();
   };
 
+  // Mark/Unmark for Review + Load Next Ques
   document.getElementById("mark-btn").onclick = () => {
-    if (answers[currentIndex] === null) {
-      marked[currentIndex] = !marked[currentIndex];
-      if (!marked[currentIndex]) paletteStatus[currentIndex] = "unanswered";
-      else paletteStatus[currentIndex] = "marked-unanswered";
-    } else {
-      marked[currentIndex] = !marked[currentIndex];
-      if (!marked[currentIndex]) paletteStatus[currentIndex] = "answered";
-      else paletteStatus[currentIndex] = "marked-answered";
+    // Toggle mark
+    toggleMark(currentIndex);
+
+    // Mark doesn't override saved answer palette colors; priority explained in updatePalette
+
+    // Move to next question automatically (if not last)
+    if (currentIndex < questions.length - 1) {
+      currentIndex++;
     }
-    updateQuestion(); updatePalette(); updateAnsweredCount();
+
+    updateQuestion();
+    updatePalette();
+    updateAnsweredCount();
   };
 
   // --- INIT ---
@@ -314,7 +358,7 @@
       timer--;
       updateTimer();
       if (timer === 0) {
-        saveStatus(currentIndex);
+        saveStatusAndClearMark(currentIndex);
         updatePalette();
         updateAnsweredCount();
         alert("Time is up! Submitting your answers.");
